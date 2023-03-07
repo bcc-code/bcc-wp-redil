@@ -1,0 +1,23 @@
+{
+    "name": "redil",
+    "version": "1.0.0",
+    "description": "Redil is a plug-in for conditional access to resources",
+    "author": "BCC",
+    "license": "Apache-2.0",
+    "main": "webpack.mix.js",
+    "keywords": [
+        "BCC",
+        "Wordpress",
+        "Plugin"
+    ],
+    "devDependencies": {
+        "@babel/preset-react": "^7.18.6",
+        "@wordpress/data": "^8.4.0",
+        "@wordpress/plugins": "^5.4.0",
+        "laravel-mix": "^6.0.49",
+        "react": "^18.0.0",
+        "resolve-url-loader": "^5.0.0",
+        "sass": "^1.58.3",
+        "sass-loader": "^12.1.0"
+    }
+}
