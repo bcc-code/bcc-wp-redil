@@ -6,7 +6,7 @@ const { PanelRow, SelectControl }    = wp.components;
 const { compose }         = wp.compose;
 const { withSelect, withDispatch }   = wp.data;
 
-const postTypes = [ 'post' , 'page' ]
+const postTypes  = [ 'post' , 'page' ]
 const { groups } = window.redilData
 
 const TargetGroup = ( { postType, postMeta, setPostMeta } ) => {
@@ -19,10 +19,7 @@ const TargetGroup = ( { postType, postMeta, setPostMeta } ) => {
                 <SelectControl
                     label    = { __( 'Target Group', 'redil' ) }
                     value    = { postMeta.redil_group_id }
-                    options  = { 
-                        Object.keys(groups)
-                            .map(key => { return { label: __(key['ID'], 'redil' ),  value: groups[key] } })
-                    }
+                    options  = { groups }
                     onChange = {
                         ( value ) => setPostMeta( { redil_group_id: value } )
                     }

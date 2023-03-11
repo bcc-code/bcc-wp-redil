@@ -44,12 +44,12 @@ class Redil_Admin {
      * The post types that this plugin applies to
      * 
      */
-    private $post_types = array( 'post', 'page' );
+    private $post_types = array( 'post', 'page', 'wpstream_product' );
 
     private $groups;
 
-    public const GROUP_ALL       = 0;
-    public const GROUP_ALL_TITLE = 'Everyone';
+    public const GROUP_EVERYONE       = 0;
+    public const GROUP_EVERYONE_TITLE = 'Everyone';
 
     /**
      * Initialize the class and set its properties.
@@ -61,7 +61,7 @@ class Redil_Admin {
     public function __construct( $plugin_name, $version ) {
 
         $this->plugin_name = $plugin_name;
-        $this->version = $version;
+        $this->version     = $version;
 
     }
 
@@ -71,6 +71,8 @@ class Redil_Admin {
      * @since    1.0.0
      */
     public function on_init() {
+        $current_user = wp_get_current_user();
+
         $args = array(
             'show_in_rest' => true,
             'single'       => true,
@@ -82,7 +84,7 @@ class Redil_Admin {
                 'show_in_rest' => current_user_can( 'edit_posts' ),
                 'single'       => true,
                 'type'         => 'number',
-                'default'      => self::GROUP_ALL
+                'default'      => self::GROUP_EVERYONE
             ) );
         }
 
@@ -97,7 +99,7 @@ class Redil_Admin {
      *
      * @since    1.0.0
      */
-    public function enqueue_styles() {
+    public function redil_enqueue_styles() {
 
         wp_enqueue_style(
             $this->plugin_name, 
@@ -114,7 +116,7 @@ class Redil_Admin {
      *
      * @since    1.0.0
      */
-    public function enqueue_scripts() {
+    public function redil_enqueue_scripts() {
 
         wp_enqueue_script(
             $this->plugin_name, 
@@ -169,8 +171,8 @@ class Redil_Admin {
                     <?php _e('Target Group', 'redil'); ?>
                     <br />
                     <select id="menu-item-redil-group-<?php echo $item_id; ?>" name="menu-item-redil-group[<?php echo $item_id; ?>]" class="widefat edit-menu-item-group">
-                        <option value="<?php echo self::GROUP_ALL; ?>" <?php selected( $group->ID == $current_group ) ?>>
-                            <?php _e( self::GROUP_ALL_TITLE, 'redil' ); ?>
+                        <option value="<?php echo self::GROUP_EVERYONE; ?>" <?php selected( self::GROUP_EVERYONE == $current_group ) ?>>
+                            <?php _e( self::GROUP_EVERYONE_TITLE, 'redil' ); ?>
                         </option>
                         <?php foreach ( $this->groups as $group ): ?>
                             <option value="<?php echo esc_attr( $group->ID ); ?>" <?php selected( $group->ID == $current_group ) ?>>
@@ -195,7 +197,7 @@ class Redil_Admin {
         if ( isset( $_POST[ $key ][ $menu_item_db_id ] ) ) {
             $value = (int) $_POST[ $key ][ $menu_item_db_id ];
 
-            if ( $value == self::GROUP_ALL ) {
+            if ( $value == self::GROUP_EVERYONE ) {
                 delete_post_meta( $menu_item_db_id, 'redil_group_id' );
             } else {
                 update_post_meta( $menu_item_db_id, 'redil_group_id', $value );
@@ -215,16 +217,54 @@ class Redil_Admin {
      */
     public function on_meta_saved( $mid, $post_id, $key, $value ) {
 
-        if ( $key == 'redil_group_id' && (int) $value == self::GROUP_ALL ) {
+        if ( $key == 'redil_group_id' && (int) $value == self::GROUP_EVERYONE ) {
             delete_post_meta( $post_id, $key );
         }
 
     }
 
     /**
+     * 
+     */
+    public function redil_add_metabox() {
+
+        add_meta_box( 'redil', __('Redil', 'redil'), [ $this, 'redil_metabox_callback' ], $this->post_types, 'side' );
+    }
+
+    /**
+     * 
+     */
+    public function redil_metabox_callback( $post ) {
+
+        include plugin_dir_path( dirname( __FILE__ ) ) . './admin/partials/redil-admin-metabox.php';
+    }
+
+    /**
+    * 
+    */
+    public function on_save_post( $post_id ) {
+
+        if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+
+        if ( $parent_id = wp_is_post_revision( $post_id ) ) {
+            $post_id = $parent_id;
+        }
+
+        if ( array_key_exists ( 'redil_group_id', $_POST ) ) {
+            update_post_meta( $post_id, 'redil_group_id', sanitize_text_field( $_POST[ 'redil_group_id' ] ) );
+        }
+    }
+
+    /**
      * Loads the JavaScript in Gutenberg.
      */
     public function on_block_editor_assets() {
+        $groups = array_map( [ $this, 'map' ], $this->groups );
+
+        array_unshift( $groups, array (
+            'value' => 0,
+            'label' => 'Everyone'
+        ) );
 
         wp_enqueue_script(
             $this->plugin_name . '-Gutenberg',
@@ -237,17 +277,17 @@ class Redil_Admin {
         wp_add_inline_script(
             $this->plugin_name . '-Gutenberg',
             'var redilData = ' . json_encode( array(
-                'groups' => array_map( 'map', $this->groups ),
+                'groups' => $groups, 
             ) ),
             'before'
         );
     }
 
-    private function map($group) {
+    public function map( $group ) {
 
         return array (
-            'key'   => $group->ID,
-            'value' => $group->post_title
+            'value' => $group->ID,
+            'label' => $group->post_title
         );
 
     }

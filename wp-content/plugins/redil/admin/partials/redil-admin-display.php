@@ -12,129 +12,57 @@
  * @subpackage Redil/admin/partials
  */
 
+//
+// INSERT SOME DATA 
+//
+// $group = array(
+//     'post_title'  => 'bcc grenland ungdom',
+//     'post_status' => 'publish',
+//     'post_type'   => 'redil_group'
 
-    //$rules  = get_post_meta ( $group->ID, 'redis_group_ruleset' );
-    $json   = '
-    {
-        "rules":
-        [
-            {
-                "conditions":
-                [
-                    {
-                        "key"    : "churchName",
-                        "compare": "==",
-                        "value"  : "Grenland"
-                    }
-                ]
-            },
-            {
-                "relation"  : "and",
-                "conditions":
-                [
-                    {
-                        "key"     : "age",
-                        "compare" : ">",
-                        "value"   : 12
-                    },
-                    {
-                        "relation": "and",
-                        "key"     : "age",
-                        "compare" : "<",
-                        "value"   : 36
-                    }
-                ]
-            }
-        ]
-    }';
+// );
 
-    $object = json_decode( $json, true );
+//wp_insert_post( $group );
 
-    // // if ( $user['churchName'] == 'Grenland' && ( $user['age'] > 12 && $user['age'] < 36 ) )
+$json    = '
+{
+    "rules":
+    [
+        {
+            "conditions":
+            [
+                {
+                    "key"    : "churchName",
+                    "compare": "==",
+                    "value"  : "Grenland"
+                }
+            ]
+        }
+    ]
+}';
 
-    // $comparer = '';
+//update_post_meta( 1394, 'redil_group_ruleset', $json, true );
+//
+// END INSERT DATA
+//
 
-    // foreach ( $object as $key => $rules )
-    // {
-    //     foreach ( $rules as $rule )
-    //     {
-    //         if ( $rule['relation'] ) 
-    //         {
-    //             switch ( $rule['relation'] )
-    //             {
-    //                 case 'and':
-    //                     $comparer .= ' && ';
-    //                     break;
+$args = array(
+    'numberposts' => -1,
+    'post_type'   => 'redil_group'
+);
 
-    //                 case 'or':
-    //                     $comparer .= ' || ';
-    //                     break;
-    //             }
-    //         }
+$groups = get_posts( $args );
+$rules  = get_post_meta ( $groups[0]->ID, 'redil_group_ruleset' );
 
-    //         $comparer .= '(';
-
-    //         foreach ( $rule['conditions'] as $condition )
-    //         {
-    //             if ( $condition['relation'] )
-    //             {
-    //                 switch ( $condition['relation'] )
-    //                 {
-    //                     case 'and':
-    //                         $comparer .= ' && ';
-    //                         break;
-
-    //                     case 'or':
-    //                         $comparer .= ' || ';
-    //                         break;
-    //                 }
-    //             }
-
-    //             $quote     = is_numeric( $condition['value'] ) ? '' : '"';
-    //             $comparer .= '$user->' . $condition['key'] . ' ' . $condition['compare'] . ' ' . $quote . $condition['value'] . $quote;
-    //         }
-
-    //         $comparer .= ')';
-    //     }
-
-    //     $comparer .= ';';
-    // }
-
-    $user   = Redil_User::get_bcc_user();
-    $access = 'Denied';
-
-    // if ( eval( $comparer ) ) 
-    // {
-    //     $access = 'Granted';
-    // }
-    // $group = array(
-    //     'post_title'  => 'bcc grenland ungdom',
-    //     'post_status' => 'publish',
-    //     'post_type'   => 'redil_group'
-
-    // );
-
-    //wp_insert_post( $group );
-
-    
-    $args = array(
-        'numberposts' => -1,
-        'post_type'   => 'redil_group'
-    );
-
-    $groups = get_posts( $args );
-
-    //add_post_meta( $groups[0]->ID, 'redis_group_ruleset', $object, true );
-
-    $rules  = get_post_meta ( $groups[0]->ID, 'redis_group_ruleset', true );
 ?>
 
 <!-- This file should primarily consist of HTML with a little bit of PHP. -->
 <h1>Redil dashboard</h1>
 
 <p>
-    <?php echo 'Found ' . count($groups) . ' groups'; ?>
+    There are <?php echo count( $groups ); ?> defined groups
 </p>
+
 <p>
-    <?php echo json_encode( $rules ); ?>
+    <?php print_r( $rules ); ?>
 </p>

@@ -44,10 +44,17 @@ class Redil_Public {
      * The post types that this plugin applies to
      * 
      */
-    private $post_types = array( 'post', 'page' );
+    private $post_types = array( 'post', 'page', 'wpstream_product' );
 
-    public const GROUP_ALL   = 0;
-    public const GROUP_YOUTH = 1;
+    /**
+     * All groups that the current user belongs to
+    */
+    private $user_groups = array();
+
+    /**
+     * Default group
+    */
+    public const GROUP_EVERYONE = 0;
 
     /**
      * Initialize the class and set its properties.
@@ -65,11 +72,19 @@ class Redil_Public {
     }
 
     /**
+     * 
+     */
+    public function on_init() {
+
+        $this->load_groups();
+    }
+
+    /**
      * Register the stylesheets for the public-facing side of the site.
      *
      * @since    1.0.0
      */
-    public function enqueue_styles() {
+    public function redil_enqueue_styles() {
 
         /**
          * This function is provided for demonstration purposes only.
@@ -92,7 +107,7 @@ class Redil_Public {
      *
      * @since    1.0.0
      */
-    public function enqueue_scripts() {
+    public function redil_enqueue_scripts() {
 
         /**
          * This function is provided for demonstration purposes only.
@@ -116,14 +131,13 @@ class Redil_Public {
      * @param WP_Post[] $items
      * @return WP_Post[]
      */
-    public function filter_menu_items( $items ) {
+    public function redil_filter_menu_items( $items ) {
 
         if ( current_user_can( 'edit_posts' ) ) {
-            return $items;
+          return $items;
         }
 
-        $removed         = array();
-        $bcc_user_groups = $this->get_bcc_user_groups();
+        $removed = array();
 
         foreach ( $items as $key => $item ) {
             // Don't render children of removed menu items.
@@ -140,7 +154,8 @@ class Redil_Public {
                     continue;
                 }
 
-                if ( in_array( $group_id, $bcc_user_groups, true ) ) {
+                // If user is member of the actual group
+                if ( in_array( $group_id, $this->user_groups ) ) {
                     continue;
                 }
 
@@ -159,7 +174,8 @@ class Redil_Public {
      * @param WP_Query $query
      * @return WP_Query
      */
-    function filter_pre_get_posts( $query ) {
+    function redil_filter_before_get_posts( $query ) {
+        
         if ( current_user_can( 'edit_posts' ) || $query->is_singular ) {
             return $query;
         }
@@ -170,22 +186,21 @@ class Redil_Public {
         }
 
         // Get original meta query
-        $meta_query      = (array)$query->get('meta_query');
-        $bcc_user_groups = $this->get_bcc_user_groups();
+        $meta_query = (array) $query->get('meta_query');
 
         // Add visibility rules
         $group_rules = array(
             'key'     => 'redil_group_id',
             'compare' => 'IN',
-            'value'   => $bcc_user_groups
+            'value'   => $this->user_groups
         );
 
         // In the unlikely case the user has no group membership
-        if ( count( $bcc_user_groups ) == 0 ) {
+        if ( count( $this->user_groups ) == 0 ) {
             $group_rules = array(
                 'key'     => 'redil_group_id',
                 'compare' => 'IN',
-                'value'   => [ self::GROUP_ALL ]
+                'value'   => [ self::GROUP_EVERYONE ]
             );
         }
 
@@ -210,53 +225,28 @@ class Redil_Public {
     private function load_dependencies() {
 
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-redil-user.php';
-
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-redil-comparer.php';
     }
 
-    private function get_bcc_user_groups() {
-        $user = $this->get_bcc_user();
+    private function load_groups() {
 
-        // All users are in the Everyone group
-        $groups = array( self::GROUP_ALL );
+        $user = Redil_User::get_bcc_user();
 
-        // Add user to the Youth group
-        if ( $this->is_user_in_group( $user, self::GROUP_YOUTH ) )
-        {
-            $groups[] = self::GROUP_YOUTH;
+        if ( $user == null ) {
+            return;
         }
 
-        return $groups;
+        $groups = get_posts( array(
+            'numberposts' => -1,
+            'post_type'   => 'redil_group'
+        ) );
+
+        foreach ( $groups as $group ) {
+            $ruleset = get_post_meta ( $group->ID, 'redil_group_ruleset', true );
+            $match   = Redil_Comparer::match( $ruleset, $user );
+
+            if ( $match )
+                $this->user_groups[] = $group->ID;
+        }
     }
-
-    function is_user_in_group($user, $group) {
-
-        // Hard-Coded rules
-        // - must be in church "Grenland"
-        // - must be between 13 and 36 years old
-        // Quite rudimentary for now
-
-        $age = date_diff( date_create( $user->birthdate ), date_create( date('Y-m-d') ), true )->format('%y');
-
-        if ( $group == self::GROUP_YOUTH )
-            if ( $user->churchName == 'Grenland' )
-                if ( $age > 12 && $age < 37 )
-                    return true;
-
-        return false;
-    }
-
-    function get_bcc_user() {
-        $token_id = $_COOKIE['oidc_token_id'];
-        $token    = get_transient( 'oidc_id_token_' . $token_id );
-        $parts    = explode('.', $token );
-        $json     = base64_decode(str_replace(array( '-', '_' ), array( '+', '/' ), $parts[ 1 ]));
-        $data     = json_decode($json, true);
-        $user     = new Redil_User();
-
-        $user->churchName = $data[ 'https://login.bcc.no/claims/churchName' ];
-        $user->birthdate  = $data[ 'birthdate' ];
-
-        return $user;
-    }
-
 }

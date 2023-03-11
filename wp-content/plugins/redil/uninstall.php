@@ -34,7 +34,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
  * The post types that this plugin applies to
  * 
  */
-$post_types = array( 'post', 'page' );
+$post_types = array( 'post', 'page', 'wpstream_product' );
 
 foreach ( $this->post_types as $post_type ) {
     delete_metadata( post_type, 0, 'redil_group_id', '', true );

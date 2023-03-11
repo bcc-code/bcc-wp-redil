@@ -40,12 +40,7 @@ var TargetGroup = function TargetGroup(_ref) {
       children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)(SelectControl, {
         label: __('Target Group', 'redil'),
         value: postMeta.redil_group_id,
-        options: Object.keys(groups).map(function (key) {
-          return {
-            label: __(key, 'redil'),
-            value: groups[key]
-          };
-        }),
+        options: groups,
         onChange: function onChange(value) {
           return setPostMeta({
             redil_group_id: value

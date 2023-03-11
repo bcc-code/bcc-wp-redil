@@ -8,13 +8,13 @@
  * registers the activation and deactivation functions, and defines a function
  * that starts the plugin.
  *
- * @link              https://github.com/bcc-code/redil
+ * @link              https://github.com/bcc-code/bcc-wp-redil
  * @since             1.0.0
  * @package           Redil
  *
  * @wordpress-plugin
  * Plugin Name:       Redil
- * Plugin URI:        https://github.com/bcc-code/redil
+ * Plugin URI:        https://github.com/bcc-code/bcc-wp-redil
  * Description:       Redil is a plug-in for conditional access to resources
  * Version:           1.0.0
  * Author:            Karel Boek

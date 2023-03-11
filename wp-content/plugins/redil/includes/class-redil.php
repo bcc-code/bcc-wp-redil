@@ -58,12 +58,6 @@ class Redil {
     protected $version;
 
     /**
-     * The post types that this plugin applies to
-     * 
-     */
-    private $post_types = array( 'post', 'page' );
-
-    /**
      * Define the core functionality of the plugin.
      *
      * Set the plugin name and the plugin version that can be used throughout the plugin.
@@ -133,6 +127,11 @@ class Redil {
          */
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-redil-user.php';
 
+        /**
+         * The class responsible for comparing the ruleset against the user profile
+         */
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-redil-comparer.php';
+
         $this->loader = new Redil_Loader();
 
     }
@@ -167,14 +166,16 @@ class Redil {
 
         $this->loader->add_action('init', $plugin_admin, 'on_init', 1);
 
-        $this->loader->add_action( 'admin_enqueue_styles', $plugin_admin, 'enqueue_styles' );
-        $this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
+        $this->loader->add_action( 'admin_enqueue_styles', $plugin_admin, 'redil_enqueue_styles' );
+        $this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'redil_enqueue_scripts' );
 
         $this->loader->add_action( 'admin_menu', $plugin_admin, 'menu_page' );
+        $this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'redil_add_metabox' );
 
         $this->loader->add_action( 'wp_nav_menu_item_custom_fields', $plugin_admin, 'on_render_menu_item', 10, 2 );
         $this->loader->add_action( 'wp_update_nav_menu_item', $plugin_admin, 'on_update_menu_item', 10, 2 );
 
+        $this->loader->add_action( 'save_post', $plugin_admin, 'on_save_post' );
         $this->loader->add_action( 'added_post_meta', $plugin_admin, 'on_meta_saved', 10, 4 );
         $this->loader->add_action( 'updated_post_meta', $plugin_admin, 'on_meta_saved', 10, 4 );
 
@@ -192,11 +193,13 @@ class Redil {
 
         $plugin_public = new Redil_Public( $this->get_plugin_name(), $this->get_version() );
 
-        $this->loader->add_action( 'wp_enqueue_styles', $plugin_public, 'enqueue_styles' );
-        $this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
+        $this->loader->add_action('init', $plugin_public, 'on_init', 1);
 
-        $this->loader->add_filter( 'wp_get_nav_menu_items', $plugin_public, 'filter_menu_items', 20 );
-        $this->loader->add_filter( 'pre_get_posts', $plugin_public, 'filter_pre_get_posts' );
+        $this->loader->add_action( 'wp_enqueue_styles', $plugin_public, 'redil_enqueue_styles' );
+        $this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'redil_enqueue_scripts' );
+
+        $this->loader->add_filter( 'wp_get_nav_menu_items', $plugin_public, 'redil_filter_menu_items', 20 );
+        $this->loader->add_filter( 'pre_get_posts', $plugin_public, 'redil_filter_before_get_posts' );
     }
 
     /**
